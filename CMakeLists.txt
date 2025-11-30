@@ -11,9 +11,6 @@ set(CMAKE_CXX_STANDARD 17)
 # Initialize the Pico SDK
 pico_sdk_init()
 
-# Add the SSD1306 display driver library
-add_subdirectory(lib/ssd1306)
-
 # Add the main executable
 add_executable(turn_taker
     src/main.c
@@ -22,13 +19,13 @@ add_executable(turn_taker
 # Include directories
 target_include_directories(turn_taker PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
 # Link libraries
 target_link_libraries(turn_taker
     pico_stdlib
     hardware_i2c
-    ssd1306
 )
 
 # Enable USB output, disable UART output

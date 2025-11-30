@@ -132,7 +132,7 @@ static void ssd1306_write_cmd(ssd1306_t *display, uint8_t cmd) {
     i2c_write_blocking(display->i2c, display->addr, buf, 2, false);
 }
 
-void ssd1306_init(ssd1306_t *display, i2c_inst_t *i2c, uint8_t addr, uint8_t width, uint8_t height) {
+static void ssd1306_init(ssd1306_t *display, i2c_inst_t *i2c, uint8_t addr, uint8_t width, uint8_t height) {
     display->i2c = i2c;
     display->addr = addr;
     display->width = width;
@@ -181,7 +181,7 @@ void ssd1306_init(ssd1306_t *display, i2c_inst_t *i2c, uint8_t addr, uint8_t wid
     ssd1306_write_cmd(display, SSD1306_DISPLAY_ON);
 }
 
-void ssd1306_display(ssd1306_t *display) {
+static void ssd1306_display(ssd1306_t *display) {
     ssd1306_write_cmd(display, SSD1306_COLUMN_ADDR);
     ssd1306_write_cmd(display, 0);
     ssd1306_write_cmd(display, display->width - 1);
@@ -201,20 +201,20 @@ void ssd1306_display(ssd1306_t *display) {
     }
 }
 
-void ssd1306_clear(ssd1306_t *display) {
+static void ssd1306_clear(ssd1306_t *display) {
     memset(display->buffer, 0, SSD1306_BUFFER_SIZE);
 }
 
-void ssd1306_set_contrast(ssd1306_t *display, uint8_t contrast) {
+static void ssd1306_set_contrast(ssd1306_t *display, uint8_t contrast) {
     ssd1306_write_cmd(display, SSD1306_SET_CONTRAST);
     ssd1306_write_cmd(display, contrast);
 }
 
-void ssd1306_invert(ssd1306_t *display, bool invert) {
+static void ssd1306_invert(ssd1306_t *display, bool invert) {
     ssd1306_write_cmd(display, invert ? SSD1306_INVERT_DISPLAY : SSD1306_NORMAL_DISPLAY);
 }
 
-void ssd1306_draw_pixel(ssd1306_t *display, int16_t x, int16_t y, bool color) {
+static void ssd1306_draw_pixel(ssd1306_t *display, int16_t x, int16_t y, bool color) {
     if (x < 0 || x >= display->width || y < 0 || y >= display->height) {
         return;
     }
@@ -226,7 +226,7 @@ void ssd1306_draw_pixel(ssd1306_t *display, int16_t x, int16_t y, bool color) {
     }
 }
 
-void ssd1306_draw_line(ssd1306_t *display, int16_t x0, int16_t y0, int16_t x1, int16_t y1, bool color) {
+static void ssd1306_draw_line(ssd1306_t *display, int16_t x0, int16_t y0, int16_t x1, int16_t y1, bool color) {
     int16_t dx = abs(x1 - x0);
     int16_t dy = -abs(y1 - y0);
     int16_t sx = x0 < x1 ? 1 : -1;
@@ -248,14 +248,14 @@ void ssd1306_draw_line(ssd1306_t *display, int16_t x0, int16_t y0, int16_t x1, i
     }
 }
 
-void ssd1306_draw_rect(ssd1306_t *display, int16_t x, int16_t y, int16_t w, int16_t h, bool color) {
+static void ssd1306_draw_rect(ssd1306_t *display, int16_t x, int16_t y, int16_t w, int16_t h, bool color) {
     ssd1306_draw_line(display, x, y, x + w - 1, y, color);
     ssd1306_draw_line(display, x, y + h - 1, x + w - 1, y + h - 1, color);
     ssd1306_draw_line(display, x, y, x, y + h - 1, color);
     ssd1306_draw_line(display, x + w - 1, y, x + w - 1, y + h - 1, color);
 }
 
-void ssd1306_fill_rect(ssd1306_t *display, int16_t x, int16_t y, int16_t w, int16_t h, bool color) {
+static void ssd1306_fill_rect(ssd1306_t *display, int16_t x, int16_t y, int16_t w, int16_t h, bool color) {
     for (int16_t i = x; i < x + w; i++) {
         for (int16_t j = y; j < y + h; j++) {
             ssd1306_draw_pixel(display, i, j, color);
@@ -263,7 +263,7 @@ void ssd1306_fill_rect(ssd1306_t *display, int16_t x, int16_t y, int16_t w, int1
     }
 }
 
-void ssd1306_draw_char(ssd1306_t *display, int16_t x, int16_t y, char c, bool color) {
+static void ssd1306_draw_char(ssd1306_t *display, int16_t x, int16_t y, char c, bool color) {
     if (c < 32 || c > 126) {
         c = '?';
     }
@@ -280,7 +280,7 @@ void ssd1306_draw_char(ssd1306_t *display, int16_t x, int16_t y, char c, bool co
     }
 }
 
-void ssd1306_draw_string(ssd1306_t *display, int16_t x, int16_t y, const char *str, bool color) {
+static void ssd1306_draw_string(ssd1306_t *display, int16_t x, int16_t y, const char *str, bool color) {
     while (*str) {
         ssd1306_draw_char(display, x, y, *str, color);
         x += 6;  // 5 pixel width + 1 pixel spacing

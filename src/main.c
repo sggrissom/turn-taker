@@ -2,7 +2,7 @@
 #include "pico/stdlib.h"
 #include "hardware/i2c.h"
 #include "config.h"
-#include "ssd1306.h"
+#include "ssd1306.c"
 
 static ssd1306_t display;
 
