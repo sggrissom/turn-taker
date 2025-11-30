@@ -1,0 +1,15 @@
+#ifndef CONFIG_H
+#define CONFIG_H
+
+// I2C Configuration
+#define I2C_PORT i2c0
+#define I2C_SDA_PIN 4
+#define I2C_SCL_PIN 5
+#define I2C_BAUDRATE 400000  // 400 kHz
+
+// SSD1315/SSD1306 Display Configuration
+#define DISPLAY_WIDTH 128
+#define DISPLAY_HEIGHT 64
+#define DISPLAY_I2C_ADDR 0x3C
+
+#endif // CONFIG_H

@@ -1,0 +1,289 @@
+#include "ssd1306.h"
+#include <string.h>
+#include <stdlib.h>
+
+// SSD1306 Commands
+#define SSD1306_SET_CONTRAST        0x81
+#define SSD1306_DISPLAY_ALL_ON_RESUME 0xA4
+#define SSD1306_DISPLAY_ALL_ON      0xA5
+#define SSD1306_NORMAL_DISPLAY      0xA6
+#define SSD1306_INVERT_DISPLAY      0xA7
+#define SSD1306_DISPLAY_OFF         0xAE
+#define SSD1306_DISPLAY_ON          0xAF
+#define SSD1306_SET_DISPLAY_OFFSET  0xD3
+#define SSD1306_SET_COM_PINS        0xDA
+#define SSD1306_SET_VCOM_DETECT     0xDB
+#define SSD1306_SET_DISPLAY_CLOCK   0xD5
+#define SSD1306_SET_PRECHARGE       0xD9
+#define SSD1306_SET_MULTIPLEX       0xA8
+#define SSD1306_SET_LOW_COLUMN      0x00
+#define SSD1306_SET_HIGH_COLUMN     0x10
+#define SSD1306_SET_START_LINE      0x40
+#define SSD1306_MEMORY_MODE         0x20
+#define SSD1306_COLUMN_ADDR         0x21
+#define SSD1306_PAGE_ADDR           0x22
+#define SSD1306_COM_SCAN_INC        0xC0
+#define SSD1306_COM_SCAN_DEC        0xC8
+#define SSD1306_SEG_REMAP           0xA0
+#define SSD1306_CHARGE_PUMP         0x8D
+
+// 5x7 Font (ASCII 32-126)
+static const uint8_t font5x7[] = {
+    0x00, 0x00, 0x00, 0x00, 0x00, // Space
+    0x00, 0x00, 0x5F, 0x00, 0x00, // !
+    0x00, 0x07, 0x00, 0x07, 0x00, // "
+    0x14, 0x7F, 0x14, 0x7F, 0x14, // #
+    0x24, 0x2A, 0x7F, 0x2A, 0x12, // $
+    0x23, 0x13, 0x08, 0x64, 0x62, // %
+    0x36, 0x49, 0x55, 0x22, 0x50, // &
+    0x00, 0x05, 0x03, 0x00, 0x00, // '
+    0x00, 0x1C, 0x22, 0x41, 0x00, // (
+    0x00, 0x41, 0x22, 0x1C, 0x00, // )
+    0x08, 0x2A, 0x1C, 0x2A, 0x08, // *
+    0x08, 0x08, 0x3E, 0x08, 0x08, // +
+    0x00, 0x50, 0x30, 0x00, 0x00, // ,
+    0x08, 0x08, 0x08, 0x08, 0x08, // -
+    0x00, 0x60, 0x60, 0x00, 0x00, // .
+    0x20, 0x10, 0x08, 0x04, 0x02, // /
+    0x3E, 0x51, 0x49, 0x45, 0x3E, // 0
+    0x00, 0x42, 0x7F, 0x40, 0x00, // 1
+    0x42, 0x61, 0x51, 0x49, 0x46, // 2
+    0x21, 0x41, 0x45, 0x4B, 0x31, // 3
+    0x18, 0x14, 0x12, 0x7F, 0x10, // 4
+    0x27, 0x45, 0x45, 0x45, 0x39, // 5
+    0x3C, 0x4A, 0x49, 0x49, 0x30, // 6
+    0x01, 0x71, 0x09, 0x05, 0x03, // 7
+    0x36, 0x49, 0x49, 0x49, 0x36, // 8
+    0x06, 0x49, 0x49, 0x29, 0x1E, // 9
+    0x00, 0x36, 0x36, 0x00, 0x00, // :
+    0x00, 0x56, 0x36, 0x00, 0x00, // ;
+    0x00, 0x08, 0x14, 0x22, 0x41, // <
+    0x14, 0x14, 0x14, 0x14, 0x14, // =
+    0x41, 0x22, 0x14, 0x08, 0x00, // >
+    0x02, 0x01, 0x51, 0x09, 0x06, // ?
+    0x32, 0x49, 0x79, 0x41, 0x3E, // @
+    0x7E, 0x11, 0x11, 0x11, 0x7E, // A
+    0x7F, 0x49, 0x49, 0x49, 0x36, // B
+    0x3E, 0x41, 0x41, 0x41, 0x22, // C
+    0x7F, 0x41, 0x41, 0x22, 0x1C, // D
+    0x7F, 0x49, 0x49, 0x49, 0x41, // E
+    0x7F, 0x09, 0x09, 0x01, 0x01, // F
+    0x3E, 0x41, 0x41, 0x51, 0x32, // G
+    0x7F, 0x08, 0x08, 0x08, 0x7F, // H
+    0x00, 0x41, 0x7F, 0x41, 0x00, // I
+    0x20, 0x40, 0x41, 0x3F, 0x01, // J
+    0x7F, 0x08, 0x14, 0x22, 0x41, // K
+    0x7F, 0x40, 0x40, 0x40, 0x40, // L
+    0x7F, 0x02, 0x04, 0x02, 0x7F, // M
+    0x7F, 0x04, 0x08, 0x10, 0x7F, // N
+    0x3E, 0x41, 0x41, 0x41, 0x3E, // O
+    0x7F, 0x09, 0x09, 0x09, 0x06, // P
+    0x3E, 0x41, 0x51, 0x21, 0x5E, // Q
+    0x7F, 0x09, 0x19, 0x29, 0x46, // R
+    0x46, 0x49, 0x49, 0x49, 0x31, // S
+    0x01, 0x01, 0x7F, 0x01, 0x01, // T
+    0x3F, 0x40, 0x40, 0x40, 0x3F, // U
+    0x1F, 0x20, 0x40, 0x20, 0x1F, // V
+    0x7F, 0x20, 0x18, 0x20, 0x7F, // W
+    0x63, 0x14, 0x08, 0x14, 0x63, // X
+    0x03, 0x04, 0x78, 0x04, 0x03, // Y
+    0x61, 0x51, 0x49, 0x45, 0x43, // Z
+    0x00, 0x00, 0x7F, 0x41, 0x41, // [
+    0x02, 0x04, 0x08, 0x10, 0x20, // backslash
+    0x41, 0x41, 0x7F, 0x00, 0x00, // ]
+    0x04, 0x02, 0x01, 0x02, 0x04, // ^
+    0x40, 0x40, 0x40, 0x40, 0x40, // _
+    0x00, 0x01, 0x02, 0x04, 0x00, // `
+    0x20, 0x54, 0x54, 0x54, 0x78, // a
+    0x7F, 0x48, 0x44, 0x44, 0x38, // b
+    0x38, 0x44, 0x44, 0x44, 0x20, // c
+    0x38, 0x44, 0x44, 0x48, 0x7F, // d
+    0x38, 0x54, 0x54, 0x54, 0x18, // e
+    0x08, 0x7E, 0x09, 0x01, 0x02, // f
+    0x08, 0x14, 0x54, 0x54, 0x3C, // g
+    0x7F, 0x08, 0x04, 0x04, 0x78, // h
+    0x00, 0x44, 0x7D, 0x40, 0x00, // i
+    0x20, 0x40, 0x44, 0x3D, 0x00, // j
+    0x00, 0x7F, 0x10, 0x28, 0x44, // k
+    0x00, 0x41, 0x7F, 0x40, 0x00, // l
+    0x7C, 0x04, 0x18, 0x04, 0x78, // m
+    0x7C, 0x08, 0x04, 0x04, 0x78, // n
+    0x38, 0x44, 0x44, 0x44, 0x38, // o
+    0x7C, 0x14, 0x14, 0x14, 0x08, // p
+    0x08, 0x14, 0x14, 0x18, 0x7C, // q
+    0x7C, 0x08, 0x04, 0x04, 0x08, // r
+    0x48, 0x54, 0x54, 0x54, 0x20, // s
+    0x04, 0x3F, 0x44, 0x40, 0x20, // t
+    0x3C, 0x40, 0x40, 0x20, 0x7C, // u
+    0x1C, 0x20, 0x40, 0x20, 0x1C, // v
+    0x3C, 0x40, 0x30, 0x40, 0x3C, // w
+    0x44, 0x28, 0x10, 0x28, 0x44, // x
+    0x0C, 0x50, 0x50, 0x50, 0x3C, // y
+    0x44, 0x64, 0x54, 0x4C, 0x44, // z
+    0x00, 0x08, 0x36, 0x41, 0x00, // {
+    0x00, 0x00, 0x7F, 0x00, 0x00, // |
+    0x00, 0x41, 0x36, 0x08, 0x00, // }
+    0x08, 0x08, 0x2A, 0x1C, 0x08, // ->
+    0x08, 0x1C, 0x2A, 0x08, 0x08, // <-
+};
+
+static void ssd1306_write_cmd(ssd1306_t *display, uint8_t cmd) {
+    uint8_t buf[2] = {0x00, cmd};  // Co=0, D/C#=0 (command)
+    i2c_write_blocking(display->i2c, display->addr, buf, 2, false);
+}
+
+void ssd1306_init(ssd1306_t *display, i2c_inst_t *i2c, uint8_t addr, uint8_t width, uint8_t height) {
+    display->i2c = i2c;
+    display->addr = addr;
+    display->width = width;
+    display->height = height;
+
+    // Clear buffer
+    memset(display->buffer, 0, SSD1306_BUFFER_SIZE);
+
+    // Initialization sequence for SSD1306/SSD1315
+    ssd1306_write_cmd(display, SSD1306_DISPLAY_OFF);
+
+    ssd1306_write_cmd(display, SSD1306_SET_DISPLAY_CLOCK);
+    ssd1306_write_cmd(display, 0x80);  // Default clock
+
+    ssd1306_write_cmd(display, SSD1306_SET_MULTIPLEX);
+    ssd1306_write_cmd(display, height - 1);
+
+    ssd1306_write_cmd(display, SSD1306_SET_DISPLAY_OFFSET);
+    ssd1306_write_cmd(display, 0x00);
+
+    ssd1306_write_cmd(display, SSD1306_SET_START_LINE | 0x00);
+
+    ssd1306_write_cmd(display, SSD1306_CHARGE_PUMP);
+    ssd1306_write_cmd(display, 0x14);  // Enable charge pump
+
+    ssd1306_write_cmd(display, SSD1306_MEMORY_MODE);
+    ssd1306_write_cmd(display, 0x00);  // Horizontal addressing mode
+
+    ssd1306_write_cmd(display, SSD1306_SEG_REMAP | 0x01);  // Column 127 mapped to SEG0
+    ssd1306_write_cmd(display, SSD1306_COM_SCAN_DEC);      // Scan from COM[N-1] to COM0
+
+    ssd1306_write_cmd(display, SSD1306_SET_COM_PINS);
+    ssd1306_write_cmd(display, height == 64 ? 0x12 : 0x02);
+
+    ssd1306_write_cmd(display, SSD1306_SET_CONTRAST);
+    ssd1306_write_cmd(display, 0xCF);
+
+    ssd1306_write_cmd(display, SSD1306_SET_PRECHARGE);
+    ssd1306_write_cmd(display, 0xF1);
+
+    ssd1306_write_cmd(display, SSD1306_SET_VCOM_DETECT);
+    ssd1306_write_cmd(display, 0x40);
+
+    ssd1306_write_cmd(display, SSD1306_DISPLAY_ALL_ON_RESUME);
+    ssd1306_write_cmd(display, SSD1306_NORMAL_DISPLAY);
+    ssd1306_write_cmd(display, SSD1306_DISPLAY_ON);
+}
+
+void ssd1306_display(ssd1306_t *display) {
+    ssd1306_write_cmd(display, SSD1306_COLUMN_ADDR);
+    ssd1306_write_cmd(display, 0);
+    ssd1306_write_cmd(display, display->width - 1);
+
+    ssd1306_write_cmd(display, SSD1306_PAGE_ADDR);
+    ssd1306_write_cmd(display, 0);
+    ssd1306_write_cmd(display, (display->height / 8) - 1);
+
+    // Send buffer in chunks (I2C has limited buffer)
+    uint8_t buf[33];
+    buf[0] = 0x40;  // Co=0, D/C#=1 (data)
+
+    for (int i = 0; i < SSD1306_BUFFER_SIZE; i += 32) {
+        int len = (SSD1306_BUFFER_SIZE - i) < 32 ? (SSD1306_BUFFER_SIZE - i) : 32;
+        memcpy(buf + 1, display->buffer + i, len);
+        i2c_write_blocking(display->i2c, display->addr, buf, len + 1, false);
+    }
+}
+
+void ssd1306_clear(ssd1306_t *display) {
+    memset(display->buffer, 0, SSD1306_BUFFER_SIZE);
+}
+
+void ssd1306_set_contrast(ssd1306_t *display, uint8_t contrast) {
+    ssd1306_write_cmd(display, SSD1306_SET_CONTRAST);
+    ssd1306_write_cmd(display, contrast);
+}
+
+void ssd1306_invert(ssd1306_t *display, bool invert) {
+    ssd1306_write_cmd(display, invert ? SSD1306_INVERT_DISPLAY : SSD1306_NORMAL_DISPLAY);
+}
+
+void ssd1306_draw_pixel(ssd1306_t *display, int16_t x, int16_t y, bool color) {
+    if (x < 0 || x >= display->width || y < 0 || y >= display->height) {
+        return;
+    }
+
+    if (color) {
+        display->buffer[x + (y / 8) * display->width] |= (1 << (y & 7));
+    } else {
+        display->buffer[x + (y / 8) * display->width] &= ~(1 << (y & 7));
+    }
+}
+
+void ssd1306_draw_line(ssd1306_t *display, int16_t x0, int16_t y0, int16_t x1, int16_t y1, bool color) {
+    int16_t dx = abs(x1 - x0);
+    int16_t dy = -abs(y1 - y0);
+    int16_t sx = x0 < x1 ? 1 : -1;
+    int16_t sy = y0 < y1 ? 1 : -1;
+    int16_t err = dx + dy;
+
+    while (1) {
+        ssd1306_draw_pixel(display, x0, y0, color);
+        if (x0 == x1 && y0 == y1) break;
+        int16_t e2 = 2 * err;
+        if (e2 >= dy) {
+            err += dy;
+            x0 += sx;
+        }
+        if (e2 <= dx) {
+            err += dx;
+            y0 += sy;
+        }
+    }
+}
+
+void ssd1306_draw_rect(ssd1306_t *display, int16_t x, int16_t y, int16_t w, int16_t h, bool color) {
+    ssd1306_draw_line(display, x, y, x + w - 1, y, color);
+    ssd1306_draw_line(display, x, y + h - 1, x + w - 1, y + h - 1, color);
+    ssd1306_draw_line(display, x, y, x, y + h - 1, color);
+    ssd1306_draw_line(display, x + w - 1, y, x + w - 1, y + h - 1, color);
+}
+
+void ssd1306_fill_rect(ssd1306_t *display, int16_t x, int16_t y, int16_t w, int16_t h, bool color) {
+    for (int16_t i = x; i < x + w; i++) {
+        for (int16_t j = y; j < y + h; j++) {
+            ssd1306_draw_pixel(display, i, j, color);
+        }
+    }
+}
+
+void ssd1306_draw_char(ssd1306_t *display, int16_t x, int16_t y, char c, bool color) {
+    if (c < 32 || c > 126) {
+        c = '?';
+    }
+
+    const uint8_t *glyph = &font5x7[(c - 32) * 5];
+
+    for (int8_t i = 0; i < 5; i++) {
+        uint8_t line = glyph[i];
+        for (int8_t j = 0; j < 7; j++) {
+            if (line & (1 << j)) {
+                ssd1306_draw_pixel(display, x + i, y + j, color);
+            }
+        }
+    }
+}
+
+void ssd1306_draw_string(ssd1306_t *display, int16_t x, int16_t y, const char *str, bool color) {
+    while (*str) {
+        ssd1306_draw_char(display, x, y, *str, color);
+        x += 6;  // 5 pixel width + 1 pixel spacing
+        str++;
+    }
+}
