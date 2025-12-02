@@ -12,4 +12,7 @@
 #define DISPLAY_HEIGHT 64
 #define DISPLAY_I2C_ADDR 0x3C
 
+// Button Configuration
+#define BUTTON_PIN 15
+
 #endif // CONFIG_H

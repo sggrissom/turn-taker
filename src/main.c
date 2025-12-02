@@ -17,6 +17,11 @@ int main() {
     gpio_pull_up(I2C_SDA_PIN);
     gpio_pull_up(I2C_SCL_PIN);
 
+    // Initialize button with internal pull-up
+    gpio_init(BUTTON_PIN);
+    gpio_set_dir(BUTTON_PIN, GPIO_IN);
+    gpio_pull_up(BUTTON_PIN);
+
     // Small delay to let the display power up
     sleep_ms(100);
 
@@ -42,6 +47,12 @@ int main() {
     char buf[32];
 
     while (true) {
+        // Check for button press (active low)
+        if (!gpio_get(BUTTON_PIN)) {
+            counter = 0;
+            sleep_ms(50);  // Simple debounce
+        }
+
         // Update counter display
         ssd1306_fill_rect(&display, 20, 30, 100, 20, false);  // Clear area
         snprintf(buf, sizeof(buf), "Count: %lu", counter);
