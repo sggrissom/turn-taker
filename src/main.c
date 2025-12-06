@@ -10,8 +10,14 @@ static ssd1306_t display;
 #endif
 
 int main() {
-    // Initialize stdio for USB serial debugging
     stdio_init_all();
+
+    // LED setup - quick blink to show code is running
+    gpio_init(LED_PIN);
+    gpio_set_dir(LED_PIN, GPIO_OUT);
+    gpio_put(LED_PIN, 1);
+    sleep_ms(100);
+    gpio_put(LED_PIN, 0);
 
 #if ENABLE_DISPLAY
     // Initialize I2C
@@ -31,17 +37,11 @@ int main() {
 
     // Initialize the display
     ssd1306_init(&display, I2C_PORT, DISPLAY_I2C_ADDR, DISPLAY_WIDTH, DISPLAY_HEIGHT);
-
-    // Clear the display
     ssd1306_clear(&display);
 
     // Draw "Hello World!" text
     ssd1306_draw_string(&display, 20, 10, "Hello World!", true);
-
-    // Draw a border around the display
     ssd1306_draw_rect(&display, 0, 0, DISPLAY_WIDTH, DISPLAY_HEIGHT, true);
-
-    // Update the display
     ssd1306_display(&display);
 
     printf("Display initialized!\n");
@@ -58,7 +58,7 @@ int main() {
         }
 
         // Update counter display
-        ssd1306_fill_rect(&display, 20, 30, 100, 20, false);  // Clear area
+        ssd1306_fill_rect(&display, 20, 30, 100, 20, false);
         snprintf(buf, sizeof(buf), "Count: %lu", counter);
         ssd1306_draw_string(&display, 20, 35, buf, true);
         ssd1306_display(&display);
@@ -68,18 +68,12 @@ int main() {
     }
 #else
     // Simple LED blink test
-    gpio_init(LED_PIN);
-    gpio_set_dir(LED_PIN, GPIO_OUT);
-
     printf("LED blink test starting...\n");
 
     bool led_state = false;
-    uint32_t count = 0;
-
     while (true) {
         led_state = !led_state;
         gpio_put(LED_PIN, led_state);
-        printf("LED %s (count: %lu)\n", led_state ? "ON" : "OFF", count++);
         sleep_ms(500);
     }
 #endif

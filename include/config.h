@@ -2,7 +2,7 @@
 #define CONFIG_H
 
 // Feature flags
-#define ENABLE_DISPLAY 0
+#define ENABLE_DISPLAY 1
 
 // LED Configuration (GP25 is the onboard LED on Pico)
 #define LED_PIN 25
@@ -14,6 +14,7 @@
 #define I2C_BAUDRATE 400000  // 400 kHz
 
 // SSD1315/SSD1306 Display Configuration
+// Note: Display VCC needs 5V (VBUS pin 40), not 3.3V
 #define DISPLAY_WIDTH 128
 #define DISPLAY_HEIGHT 64
 #define DISPLAY_I2C_ADDR 0x3C
