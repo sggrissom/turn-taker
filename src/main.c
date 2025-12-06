@@ -12,45 +12,97 @@ static ssd1306_t display;
 static const char *names[] = {"Maia", "Adalie"};
 static const uint8_t num_names = 2;
 
-static void draw_screen(uint8_t name_index, uint8_t turns) {
-    const char *name = names[name_index];
-    uint8_t scale = 3;
+// UI constants
+#define BORDER_MARGIN 2
+#define LINE_MARGIN 8
+#define NAME_SCALE 3
 
-    // Calculate text dimensions
+static uint8_t get_name_len(const char *name) {
     uint8_t len = 0;
     for (const char *p = name; *p; p++) len++;
-    int16_t text_width = len * 6 * scale;
-    int16_t text_height = 7 * scale;
+    return len;
+}
+
+// Draw screen content at a horizontal offset (for animation)
+static void draw_content(const char *name, uint8_t turns, int16_t x_offset) {
+    uint8_t len = get_name_len(name);
+    int16_t text_width = len * 6 * NAME_SCALE;
+    int16_t text_height = 7 * NAME_SCALE;
 
     // Dot parameters
     uint8_t dot_size = 6;
-    uint8_t dot_spacing = 10;  // center-to-center
+    uint8_t dot_spacing = 10;
     int16_t dots_width = turns * dot_size + (turns - 1) * (dot_spacing - dot_size);
-    int16_t gap = 8;  // gap between name and dots
+    int16_t gap = 6;
 
-    // Total height of name + gap + dots
-    int16_t total_height = text_height + gap + dot_size;
+    // Layout calculations
+    int16_t line_y1 = 10;
+    int16_t name_y = line_y1 + 6;
+    int16_t line_y2 = name_y + text_height + 4;
+    int16_t dots_y = line_y2 + 8;
 
-    // Center vertically
-    int16_t name_y = (DISPLAY_HEIGHT - total_height) / 2;
-    int16_t dots_y = name_y + text_height + gap;
+    // Center name horizontally with offset
+    int16_t name_x = (DISPLAY_WIDTH - text_width) / 2 + x_offset;
+    int16_t dots_x = (DISPLAY_WIDTH - dots_width) / 2 + x_offset;
 
-    // Center name horizontally
-    int16_t name_x = (DISPLAY_WIDTH - text_width) / 2;
+    // Draw name (black on white = false)
+    ssd1306_draw_string_scaled(&display, name_x, name_y, name, NAME_SCALE, false);
 
-    // Center dots horizontally
-    int16_t dots_x = (DISPLAY_WIDTH - dots_width) / 2;
+    // Draw horizontal lines (black)
+    ssd1306_draw_line(&display, LINE_MARGIN + x_offset, line_y1,
+                      DISPLAY_WIDTH - LINE_MARGIN + x_offset, line_y1, false);
+    ssd1306_draw_line(&display, LINE_MARGIN + x_offset, line_y2,
+                      DISPLAY_WIDTH - LINE_MARGIN + x_offset, line_y2, false);
 
-    ssd1306_clear(&display);
-    ssd1306_draw_string_scaled(&display, name_x, name_y, name, scale, true);
-
-    // Draw dots
+    // Draw dots (black)
     for (uint8_t i = 0; i < turns; i++) {
         int16_t x = dots_x + i * dot_spacing;
-        ssd1306_fill_rect(&display, x, dots_y, dot_size, dot_size, true);
+        ssd1306_fill_rect(&display, x, dots_y, dot_size, dot_size, false);
     }
+}
+
+static void draw_screen(uint8_t name_index, uint8_t turns) {
+    // Fill white background
+    ssd1306_fill_rect(&display, 0, 0, DISPLAY_WIDTH, DISPLAY_HEIGHT, true);
+
+    // Draw black border
+    ssd1306_draw_rect(&display, BORDER_MARGIN, BORDER_MARGIN,
+                      DISPLAY_WIDTH - 2 * BORDER_MARGIN,
+                      DISPLAY_HEIGHT - 2 * BORDER_MARGIN, false);
+
+    // Draw content
+    draw_content(names[name_index], turns, 0);
 
     ssd1306_display(&display);
+}
+
+static void animate_transition(uint8_t old_index, uint8_t new_index, uint8_t turns) {
+    const int16_t steps = 12;
+    const int16_t step_size = DISPLAY_WIDTH / steps;
+
+    for (int16_t i = 1; i <= steps; i++) {
+        int16_t offset = i * step_size;
+
+        // Fill white background
+        ssd1306_fill_rect(&display, 0, 0, DISPLAY_WIDTH, DISPLAY_HEIGHT, true);
+
+        // Draw black border (stays fixed)
+        ssd1306_draw_rect(&display, BORDER_MARGIN, BORDER_MARGIN,
+                          DISPLAY_WIDTH - 2 * BORDER_MARGIN,
+                          DISPLAY_HEIGHT - 2 * BORDER_MARGIN, false);
+
+        // Old name slides out to the left
+        draw_content(names[old_index], 1, -offset);
+
+        // New name slides in from the right
+        draw_content(names[new_index], turns, DISPLAY_WIDTH - offset);
+
+        ssd1306_display(&display);
+        sleep_ms(25);
+    }
+
+    // Final frame - ensure perfectly centered
+    draw_screen(new_index, turns);
 }
 #endif
 
@@ -104,11 +156,14 @@ int main() {
         if (take_was_pressed && !take_pressed) {
             turns--;
             if (turns == 0) {
-                // Next person's turn
+                // Next person's turn - animate transition
+                uint8_t old = current;
                 current = (current + 1) % num_names;
                 turns = 1;
+                animate_transition(old, current, turns);
+            } else {
+                draw_screen(current, turns);
             }
-            draw_screen(current, turns);
         }
 
         // Defer (add a turn) on button release
