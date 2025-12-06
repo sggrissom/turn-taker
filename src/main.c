@@ -7,6 +7,29 @@
 #include "ssd1306.c"
 
 static ssd1306_t display;
+
+// Names to display
+static const char *names[] = {"Maia", "Adalie"};
+static const uint8_t num_names = 2;
+
+static void draw_name(uint8_t index) {
+    const char *name = names[index];
+    uint8_t scale = 3;
+
+    // Calculate text width: chars * (5 pixels + 1 spacing) * scale
+    uint8_t len = 0;
+    for (const char *p = name; *p; p++) len++;
+    int16_t text_width = len * 6 * scale;
+    int16_t text_height = 7 * scale;
+
+    // Center on display
+    int16_t x = (DISPLAY_WIDTH - text_width) / 2;
+    int16_t y = (DISPLAY_HEIGHT - text_height) / 2;
+
+    ssd1306_clear(&display);
+    ssd1306_draw_string_scaled(&display, x, y, name, scale, true);
+    ssd1306_display(&display);
+}
 #endif
 
 int main() {
@@ -37,34 +60,24 @@ int main() {
 
     // Initialize the display
     ssd1306_init(&display, I2C_PORT, DISPLAY_I2C_ADDR, DISPLAY_WIDTH, DISPLAY_HEIGHT);
-    ssd1306_clear(&display);
 
-    // Draw "Hello World!" text
-    ssd1306_draw_string(&display, 20, 10, "Hello World!", true);
-    ssd1306_draw_rect(&display, 0, 0, DISPLAY_WIDTH, DISPLAY_HEIGHT, true);
-    ssd1306_display(&display);
+    // Show first name
+    uint8_t current = 0;
+    draw_name(current);
 
-    printf("Display initialized!\n");
-
-    // Simple counter demo
-    uint32_t counter = 0;
-    char buf[32];
+    bool button_was_pressed = false;
 
     while (true) {
-        // Check for button press (active low)
-        if (!gpio_get(BUTTON_PIN)) {
-            counter = 0;
-            sleep_ms(50);  // Simple debounce
+        bool button_pressed = !gpio_get(BUTTON_PIN);
+
+        // Toggle on button release (falling edge)
+        if (button_was_pressed && !button_pressed) {
+            current = (current + 1) % num_names;
+            draw_name(current);
         }
 
-        // Update counter display
-        ssd1306_fill_rect(&display, 20, 30, 100, 20, false);
-        snprintf(buf, sizeof(buf), "Count: %lu", counter);
-        ssd1306_draw_string(&display, 20, 35, buf, true);
-        ssd1306_display(&display);
-
-        counter++;
-        sleep_ms(1000);
+        button_was_pressed = button_pressed;
+        sleep_ms(20);  // Debounce delay
     }
 #else
     // Simple LED blink test

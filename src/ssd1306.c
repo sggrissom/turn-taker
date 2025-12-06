@@ -287,3 +287,29 @@ static void ssd1306_draw_string(ssd1306_t *display, int16_t x, int16_t y, const 
         str++;
     }
 }
+
+static void ssd1306_draw_char_scaled(ssd1306_t *display, int16_t x, int16_t y, char c, uint8_t scale, bool color) {
+    if (c < 32 || c > 126) {
+        c = '?';
+    }
+
+    const uint8_t *glyph = &font5x7[(c - 32) * 5];
+
+    for (int8_t i = 0; i < 5; i++) {
+        uint8_t line = glyph[i];
+        for (int8_t j = 0; j < 7; j++) {
+            if (line & (1 << j)) {
+                // Draw a filled rectangle for each pixel
+                ssd1306_fill_rect(display, x + i * scale, y + j * scale, scale, scale, color);
+            }
+        }
+    }
+}
+
+static void ssd1306_draw_string_scaled(ssd1306_t *display, int16_t x, int16_t y, const char *str, uint8_t scale, bool color) {
+    while (*str) {
+        ssd1306_draw_char_scaled(display, x, y, *str, scale, color);
+        x += 6 * scale;  // (5 pixel width + 1 pixel spacing) * scale
+        str++;
+    }
+}
