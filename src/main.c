@@ -12,22 +12,44 @@ static ssd1306_t display;
 static const char *names[] = {"Maia", "Adalie"};
 static const uint8_t num_names = 2;
 
-static void draw_name(uint8_t index) {
-    const char *name = names[index];
+static void draw_screen(uint8_t name_index, uint8_t turns) {
+    const char *name = names[name_index];
     uint8_t scale = 3;
 
-    // Calculate text width: chars * (5 pixels + 1 spacing) * scale
+    // Calculate text dimensions
     uint8_t len = 0;
     for (const char *p = name; *p; p++) len++;
     int16_t text_width = len * 6 * scale;
     int16_t text_height = 7 * scale;
 
-    // Center on display
-    int16_t x = (DISPLAY_WIDTH - text_width) / 2;
-    int16_t y = (DISPLAY_HEIGHT - text_height) / 2;
+    // Dot parameters
+    uint8_t dot_size = 6;
+    uint8_t dot_spacing = 10;  // center-to-center
+    int16_t dots_width = turns * dot_size + (turns - 1) * (dot_spacing - dot_size);
+    int16_t gap = 8;  // gap between name and dots
+
+    // Total height of name + gap + dots
+    int16_t total_height = text_height + gap + dot_size;
+
+    // Center vertically
+    int16_t name_y = (DISPLAY_HEIGHT - total_height) / 2;
+    int16_t dots_y = name_y + text_height + gap;
+
+    // Center name horizontally
+    int16_t name_x = (DISPLAY_WIDTH - text_width) / 2;
+
+    // Center dots horizontally
+    int16_t dots_x = (DISPLAY_WIDTH - dots_width) / 2;
 
     ssd1306_clear(&display);
-    ssd1306_draw_string_scaled(&display, x, y, name, scale, true);
+    ssd1306_draw_string_scaled(&display, name_x, name_y, name, scale, true);
+
+    // Draw dots
+    for (uint8_t i = 0; i < turns; i++) {
+        int16_t x = dots_x + i * dot_spacing;
+        ssd1306_fill_rect(&display, x, dots_y, dot_size, dot_size, true);
+    }
+
     ssd1306_display(&display);
 }
 #endif
@@ -61,19 +83,26 @@ int main() {
     // Initialize the display
     ssd1306_init(&display, I2C_PORT, DISPLAY_I2C_ADDR, DISPLAY_WIDTH, DISPLAY_HEIGHT);
 
-    // Show first name
+    // Game state
     uint8_t current = 0;
-    draw_name(current);
+    uint8_t turns = 1;
+
+    draw_screen(current, turns);
 
     bool button_was_pressed = false;
 
     while (true) {
         bool button_pressed = !gpio_get(BUTTON_PIN);
 
-        // Toggle on button release (falling edge)
+        // Take a turn on button release
         if (button_was_pressed && !button_pressed) {
-            current = (current + 1) % num_names;
-            draw_name(current);
+            turns--;
+            if (turns == 0) {
+                // Next person's turn
+                current = (current + 1) % num_names;
+                turns = 1;
+            }
+            draw_screen(current, turns);
         }
 
         button_was_pressed = button_pressed;
