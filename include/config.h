@@ -20,6 +20,7 @@
 #define DISPLAY_I2C_ADDR 0x3C
 
 // Button Configuration
-#define BUTTON_PIN 15
+#define BUTTON_PIN 15        // Take turn (GP15, pin 20)
+#define DEFER_BUTTON_PIN 14  // Defer/add turn (GP14, pin 19)
 
 #endif // CONFIG_H

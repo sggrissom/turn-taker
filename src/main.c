@@ -72,10 +72,14 @@ int main() {
     gpio_pull_up(I2C_SDA_PIN);
     gpio_pull_up(I2C_SCL_PIN);
 
-    // Initialize button with internal pull-up
+    // Initialize buttons with internal pull-up
     gpio_init(BUTTON_PIN);
     gpio_set_dir(BUTTON_PIN, GPIO_IN);
     gpio_pull_up(BUTTON_PIN);
+
+    gpio_init(DEFER_BUTTON_PIN);
+    gpio_set_dir(DEFER_BUTTON_PIN, GPIO_IN);
+    gpio_pull_up(DEFER_BUTTON_PIN);
 
     // Small delay to let the display power up
     sleep_ms(100);
@@ -89,13 +93,15 @@ int main() {
 
     draw_screen(current, turns);
 
-    bool button_was_pressed = false;
+    bool take_was_pressed = false;
+    bool defer_was_pressed = false;
 
     while (true) {
-        bool button_pressed = !gpio_get(BUTTON_PIN);
+        bool take_pressed = !gpio_get(BUTTON_PIN);
+        bool defer_pressed = !gpio_get(DEFER_BUTTON_PIN);
 
         // Take a turn on button release
-        if (button_was_pressed && !button_pressed) {
+        if (take_was_pressed && !take_pressed) {
             turns--;
             if (turns == 0) {
                 // Next person's turn
@@ -105,7 +111,16 @@ int main() {
             draw_screen(current, turns);
         }
 
-        button_was_pressed = button_pressed;
+        // Defer (add a turn) on button release
+        if (defer_was_pressed && !defer_pressed) {
+            if (turns < 3) {
+                turns++;
+                draw_screen(current, turns);
+            }
+        }
+
+        take_was_pressed = take_pressed;
+        defer_was_pressed = defer_pressed;
         sleep_ms(20);  // Debounce delay
     }
 #else
