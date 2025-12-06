@@ -26,6 +26,8 @@ target_include_directories(turn_taker PRIVATE
 target_link_libraries(turn_taker
     pico_stdlib
     hardware_i2c
+    hardware_flash
+    hardware_sync
 )
 
 # Enable USB output, disable UART output

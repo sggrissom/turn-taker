@@ -1,6 +1,53 @@
 #include <stdio.h>
+#include <string.h>
 #include "pico/stdlib.h"
+#include "hardware/flash.h"
+#include "hardware/sync.h"
 #include "config.h"
+
+// Flash storage for persistent state
+// Use last sector of 2MB flash (offset from start of flash)
+#define FLASH_TARGET_OFFSET (2 * 1024 * 1024 - FLASH_SECTOR_SIZE)
+#define SAVE_MAGIC 0x5455524E  // "TURN" in hex
+
+typedef struct {
+    uint32_t magic;
+    uint8_t current;
+    uint8_t turns;
+    uint8_t padding[2];
+} save_data_t;
+
+static void save_state(uint8_t current, uint8_t turns) {
+    // Buffer must be FLASH_PAGE_SIZE (256 bytes) for flash_range_program
+    uint8_t buffer[FLASH_PAGE_SIZE] = {0};
+    save_data_t *data = (save_data_t*)buffer;
+    data->magic = SAVE_MAGIC;
+    data->current = current;
+    data->turns = turns;
+
+    // Must disable interrupts during flash operations
+    uint32_t ints = save_and_disable_interrupts();
+
+    // Erase the sector (required before writing)
+    flash_range_erase(FLASH_TARGET_OFFSET, FLASH_SECTOR_SIZE);
+
+    // Write the data (must be multiple of FLASH_PAGE_SIZE)
+    flash_range_program(FLASH_TARGET_OFFSET, buffer, FLASH_PAGE_SIZE);
+
+    restore_interrupts(ints);
+}
+
+static bool load_state(uint8_t *current, uint8_t *turns) {
+    // Flash is memory-mapped, so we can read it directly
+    const save_data_t *data = (const save_data_t *)(XIP_BASE + FLASH_TARGET_OFFSET);
+
+    if (data->magic == SAVE_MAGIC) {
+        *current = data->current;
+        *turns = data->turns;
+        return true;
+    }
+    return false;
+}
 
 #if ENABLE_DISPLAY
 #include "hardware/i2c.h"
@@ -139,9 +186,17 @@ int main() {
     // Initialize the display
     ssd1306_init(&display, I2C_PORT, DISPLAY_I2C_ADDR, DISPLAY_WIDTH, DISPLAY_HEIGHT);
 
-    // Game state
+    // Load saved state or use defaults
     uint8_t current = 0;
     uint8_t turns = 1;
+    if (!load_state(&current, &turns)) {
+        // No valid save, use defaults
+        current = 0;
+        turns = 1;
+    }
+    // Validate loaded values
+    if (current >= num_names) current = 0;
+    if (turns < 1 || turns > 3) turns = 1;
 
     draw_screen(current, turns);
 
@@ -164,6 +219,7 @@ int main() {
             } else {
                 draw_screen(current, turns);
             }
+            save_state(current, turns);
         }
 
         // Defer (add a turn) on button release
@@ -171,6 +227,7 @@ int main() {
             if (turns < 3) {
                 turns++;
                 draw_screen(current, turns);
+                save_state(current, turns);
             }
         }
 
