@@ -1,6 +1,12 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
+// Feature flags
+#define ENABLE_DISPLAY 0
+
+// LED Configuration (GP25 is the onboard LED on Pico)
+#define LED_PIN 25
+
 // I2C Configuration
 #define I2C_PORT i2c0
 #define I2C_SDA_PIN 4

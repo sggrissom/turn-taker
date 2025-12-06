@@ -1,15 +1,19 @@
 #include <stdio.h>
 #include "pico/stdlib.h"
-#include "hardware/i2c.h"
 #include "config.h"
+
+#if ENABLE_DISPLAY
+#include "hardware/i2c.h"
 #include "ssd1306.c"
 
 static ssd1306_t display;
+#endif
 
 int main() {
     // Initialize stdio for USB serial debugging
     stdio_init_all();
 
+#if ENABLE_DISPLAY
     // Initialize I2C
     i2c_init(I2C_PORT, I2C_BAUDRATE);
     gpio_set_function(I2C_SDA_PIN, GPIO_FUNC_I2C);
@@ -62,6 +66,23 @@ int main() {
         counter++;
         sleep_ms(1000);
     }
+#else
+    // Simple LED blink test
+    gpio_init(LED_PIN);
+    gpio_set_dir(LED_PIN, GPIO_OUT);
+
+    printf("LED blink test starting...\n");
+
+    bool led_state = false;
+    uint32_t count = 0;
+
+    while (true) {
+        led_state = !led_state;
+        gpio_put(LED_PIN, led_state);
+        printf("LED %s (count: %lu)\n", led_state ? "ON" : "OFF", count++);
+        sleep_ms(500);
+    }
+#endif
 
     return 0;
 }
