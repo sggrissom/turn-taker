@@ -2,7 +2,7 @@
 #define CONFIG_H
 
 // Feature flags
-#define ENABLE_DISPLAY 1
+#define ENABLE_DISPLAY 0
 
 // LED Configuration (GP25 is the onboard LED on Pico)
 #define LED_PIN 25

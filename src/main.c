@@ -236,14 +236,43 @@ int main() {
         sleep_ms(20);  // Debounce delay
     }
 #else
-    // Simple LED blink test
-    printf("LED blink test starting...\n");
+    // Hardware debug test - LED blink + button test
+    // LED blinks slowly by default
+    // Take button (GP15): fast blink while held
+    // Defer button (GP14): solid on while held
+    // Both buttons: very fast strobe
+    printf("Hardware debug test starting...\n");
 
-    bool led_state = false;
+    // Initialize buttons with internal pull-up
+    gpio_init(BUTTON_PIN);
+    gpio_set_dir(BUTTON_PIN, GPIO_IN);
+    gpio_pull_up(BUTTON_PIN);
+
+    gpio_init(DEFER_BUTTON_PIN);
+    gpio_set_dir(DEFER_BUTTON_PIN, GPIO_IN);
+    gpio_pull_up(DEFER_BUTTON_PIN);
+
+    uint32_t counter = 0;
     while (true) {
-        led_state = !led_state;
-        gpio_put(LED_PIN, led_state);
-        sleep_ms(500);
+        bool take_pressed = !gpio_get(BUTTON_PIN);      // GP15
+        bool defer_pressed = !gpio_get(DEFER_BUTTON_PIN); // GP14
+
+        if (take_pressed && defer_pressed) {
+            // Both: very fast strobe (50ms)
+            gpio_put(LED_PIN, (counter / 50) % 2);
+        } else if (take_pressed) {
+            // Take only: fast blink (100ms)
+            gpio_put(LED_PIN, (counter / 100) % 2);
+        } else if (defer_pressed) {
+            // Defer only: solid on
+            gpio_put(LED_PIN, 1);
+        } else {
+            // No buttons: slow blink (500ms)
+            gpio_put(LED_PIN, (counter / 500) % 2);
+        }
+
+        sleep_ms(1);
+        counter++;
     }
 #endif
 
