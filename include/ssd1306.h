@@ -32,6 +32,8 @@ static void ssd1306_display(ssd1306_t *display);
 static void ssd1306_clear(ssd1306_t *display);
 static void ssd1306_set_contrast(ssd1306_t *display, uint8_t contrast);
 static void ssd1306_invert(ssd1306_t *display, bool invert);
+static void ssd1306_sleep(ssd1306_t *display);
+static void ssd1306_wake(ssd1306_t *display);
 
 // Drawing primitives
 static void ssd1306_draw_pixel(ssd1306_t *display, int16_t x, int16_t y, bool color);

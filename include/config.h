@@ -4,6 +4,15 @@
 // Feature flags
 #define ENABLE_DISPLAY 1
 
+// Power saving
+// After IDLE_TIMEOUT_MS with no button activity the panel is switched off and,
+// with ENABLE_DEEP_SLEEP, the RP2040 goes dormant until a button is pressed.
+// The waking press only lights the screen back up; it does not use a turn.
+// Deep sleep stops every clock including USB, so it cannot be combined with
+// a USB-stdio build (see ENABLE_USB_STDIO in CMakeLists.txt).
+#define ENABLE_DEEP_SLEEP 1
+#define IDLE_TIMEOUT_MS 60000
+
 // LED Configuration (GP25 is the onboard LED on Pico)
 #define LED_PIN 25
 

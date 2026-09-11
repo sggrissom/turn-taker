@@ -151,6 +151,79 @@ static void animate_transition(uint8_t old_index, uint8_t new_index, uint8_t tur
     // Final frame - ensure perfectly centered
     draw_screen(new_index, turns);
 }
+
+#if ENABLE_DEEP_SLEEP
+#include "hardware/clocks.h"
+#include "hardware/pll.h"
+#include "hardware/xosc.h"
+#include "pico/runtime_init.h"
+
+// Level-sensitive wake, not edge: the GPIO edge detector is clocked from
+// clk_sys, which is stopped while dormant.
+#define DORMANT_WAKE_EVENTS GPIO_IRQ_LEVEL_LOW
+
+// Put every clock on the crystal so nothing is left running from a PLL when the
+// PLLs stop. clk_sys in particular must not be PLL-derived or the core will not
+// come back when the crystal restarts.
+static void clocks_run_from_xosc(void) {
+    clock_configure(clk_ref, CLOCKS_CLK_REF_CTRL_SRC_VALUE_XOSC_CLKSRC, 0,
+                    XOSC_HZ, XOSC_HZ);
+    clock_configure(clk_sys, CLOCKS_CLK_SYS_CTRL_SRC_VALUE_CLK_REF, 0,
+                    XOSC_HZ, XOSC_HZ);
+    clock_configure(clk_peri, 0, CLOCKS_CLK_PERI_CTRL_AUXSRC_VALUE_CLK_SYS,
+                    XOSC_HZ, XOSC_HZ);
+    clock_stop(clk_usb);
+    clock_stop(clk_adc);
+    clock_stop(clk_rtc);
+    pll_deinit(pll_sys);
+    pll_deinit(pll_usb);
+}
+
+// Halt the RP2040 until a button pulls its pin low. ROSC is deliberately left
+// running: clocks_init() briefly parks clk_ref on it while rebuilding the PLLs.
+static void enter_dormant(void) {
+    clocks_run_from_xosc();
+
+    gpio_set_dormant_irq_enabled(BUTTON_PIN, DORMANT_WAKE_EVENTS, true);
+    gpio_set_dormant_irq_enabled(DEFER_BUTTON_PIN, DORMANT_WAKE_EVENTS, true);
+
+    xosc_dormant();  // Returns once a button is pressed
+
+    gpio_set_dormant_irq_enabled(BUTTON_PIN, DORMANT_WAKE_EVENTS, false);
+    gpio_set_dormant_irq_enabled(DEFER_BUTTON_PIN, DORMANT_WAKE_EVENTS, false);
+
+    // Restore the PLLs and the 125 MHz system clock, then rebuild I2C, whose
+    // baud rate divisors were computed against the old clk_peri.
+    clocks_init();
+    i2c_init(I2C_PORT, I2C_BAUDRATE);
+}
+#endif
+
+static void wait_for_buttons_released(void) {
+    while (!gpio_get(BUTTON_PIN) || !gpio_get(DEFER_BUTTON_PIN)) {
+        sleep_ms(20);
+    }
+    sleep_ms(20);  // Debounce the release
+}
+
+// Blank the panel and idle until a button is pressed. Returns with the display
+// lit again and the caller responsible for redrawing.
+static void enter_sleep(void) {
+    ssd1306_sleep(&display);
+
+#if ENABLE_DEEP_SLEEP
+    enter_dormant();
+    // The module never lost power, but its controller comes back with the
+    // charge pump down and the clocks it was configured against changed, so
+    // bring it up through a full init rather than a bare display-on.
+    ssd1306_init(&display, I2C_PORT, DISPLAY_I2C_ADDR, DISPLAY_WIDTH, DISPLAY_HEIGHT);
+#else
+    while (gpio_get(BUTTON_PIN) && gpio_get(DEFER_BUTTON_PIN)) {
+        sleep_ms(20);
+    }
+    ssd1306_wake(&display);
+#endif
+}
 #endif
 
 int main() {
@@ -202,10 +275,15 @@ int main() {
 
     bool take_was_pressed = false;
     bool defer_was_pressed = false;
+    absolute_time_t last_activity = get_absolute_time();
 
     while (true) {
         bool take_pressed = !gpio_get(BUTTON_PIN);
         bool defer_pressed = !gpio_get(DEFER_BUTTON_PIN);
+
+        if (take_pressed || defer_pressed) {
+            last_activity = get_absolute_time();
+        }
 
         // Take a turn on button release
         if (take_was_pressed && !take_pressed) {
@@ -233,6 +311,19 @@ int main() {
 
         take_was_pressed = take_pressed;
         defer_was_pressed = defer_pressed;
+
+        if (absolute_time_diff_us(last_activity, get_absolute_time()) >
+            (int64_t)IDLE_TIMEOUT_MS * 1000) {
+            enter_sleep();
+            draw_screen(current, turns);
+            // The press that woke us is not a turn - swallow it by waiting for
+            // the release and clearing the edge state the handlers act on.
+            wait_for_buttons_released();
+            take_was_pressed = false;
+            defer_was_pressed = false;
+            last_activity = get_absolute_time();
+        }
+
         sleep_ms(20);  // Debounce delay
     }
 #else

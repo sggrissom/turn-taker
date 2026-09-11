@@ -28,10 +28,21 @@ target_link_libraries(turn_taker
     hardware_i2c
     hardware_flash
     hardware_sync
+    hardware_clocks
+    hardware_pll
+    hardware_xosc
 )
 
-# Enable USB output, disable UART output
-pico_enable_stdio_usb(turn_taker 1)
+# USB serial costs several mA of permanent idle draw and keeps the USB PHY and
+# clocks alive, which is incompatible with the dormant sleep in config.h. It is
+# off by default; for debugging build with:
+#   cmake -DENABLE_USB_STDIO=ON .. (and set ENABLE_DEEP_SLEEP 0 in config.h)
+option(ENABLE_USB_STDIO "Enable USB serial stdio (raises idle power draw)" OFF)
+if (ENABLE_USB_STDIO)
+    pico_enable_stdio_usb(turn_taker 1)
+else ()
+    pico_enable_stdio_usb(turn_taker 0)
+endif ()
 pico_enable_stdio_uart(turn_taker 0)
 
 # Create UF2 file for flashing

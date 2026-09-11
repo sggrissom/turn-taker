@@ -214,6 +214,21 @@ static void ssd1306_invert(ssd1306_t *display, bool invert) {
     ssd1306_write_cmd(display, invert ? SSD1306_INVERT_DISPLAY : SSD1306_NORMAL_DISPLAY);
 }
 
+// Blank the panel: stop the scan and shut the charge pump down. This takes the
+// OLED from tens of milliamps to microamps, which is the bulk of the idle
+// power saving. Contents of GDDRAM are not relied on across this.
+static void ssd1306_sleep(ssd1306_t *display) {
+    ssd1306_write_cmd(display, SSD1306_DISPLAY_OFF);
+    ssd1306_write_cmd(display, SSD1306_CHARGE_PUMP);
+    ssd1306_write_cmd(display, 0x10);  // Charge pump off
+}
+
+static void ssd1306_wake(ssd1306_t *display) {
+    ssd1306_write_cmd(display, SSD1306_CHARGE_PUMP);
+    ssd1306_write_cmd(display, 0x14);  // Charge pump on
+    ssd1306_write_cmd(display, SSD1306_DISPLAY_ON);
+}
+
 static void ssd1306_draw_pixel(ssd1306_t *display, int16_t x, int16_t y, bool color) {
     if (x < 0 || x >= display->width || y < 0 || y >= display->height) {
         return;

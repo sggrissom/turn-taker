@@ -11,16 +11,25 @@ cmake .. > /dev/null
 make
 
 # Wait for Pico in BOOTSEL mode
+# Match on the partition label, not a device node: the kernel hands out
+# sdb/sdc/sdd depending on what else is plugged in.
 echo ""
 echo "Waiting for Pico in BOOTSEL mode..."
-while [ ! -b /dev/sdd1 ]; do
+WAITED=0
+while [ ! -e /dev/disk/by-label/RPI-RP2 ]; do
     sleep 0.5
+    WAITED=$((WAITED + 1))
+    if [ "$WAITED" -ge 120 ]; then
+        echo "Error: timed out after 60s. Hold BOOTSEL while connecting USB."
+        exit 1
+    fi
 done
+DEVICE=$(readlink -f /dev/disk/by-label/RPI-RP2)
 sleep 1  # Extra delay for device to settle
 
 # Mount and get mount point from output
-echo "Mounting..."
-MOUNT_OUTPUT=$(udisksctl mount -b /dev/sdd1 2>&1) || true
+echo "Mounting $DEVICE..."
+MOUNT_OUTPUT=$(udisksctl mount -b "$DEVICE" 2>&1) || true
 echo "$MOUNT_OUTPUT"
 
 # Extract mount point from output like "Mounted /dev/sdd1 at /run/media/sgg/RPI-RP2"
