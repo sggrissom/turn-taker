@@ -1,0 +1,85 @@
+Turn Taker enclosure - revision 1
+=================================
+PCB           : dia 65.067 mm, 1.60 mm thick
+Enclosure     : dia 70.067 mm, base 24.60 mm tall, lid 2.20 mm -> 26.80 mm overall
+PCB underside : z = 7.00 mm  (floor 2.00 + elevation 5.00)
+Lid underside : z = 24.60 mm  (16.00 mm above the PCB top face)
+
+Building base ...
+  base: 1 solid(s), volume 19585.8 mm^3, bbox Z 0.00..24.60
+Building lid ...
+  lid: 1 solid(s), volume 8226.6 mm^3, bbox Z 20.60..26.80
+Loading PCB reference ...
+  reference STEP: 7 solids -> A1 Pico, Bat_In1, J1 (display conn.), J2 (power conn.), PCB, SW1, SW2
+
+Validation
+----------
+  [PASS] PCB fits base cavity: cavity R 33.034 vs PCB R 32.534 (0.50 mm radial gap)
+  [PASS] PCB perimeter ledge bearing width 1.10 mm (ledge inner R 31.43)
+  [PASS] PCB underside clears the floor: 5.00 mm elevation vs 1.91 mm of pin protrusion (3.09 mm spare)
+  [PASS] support posts clear of solder joints: worst gap 4.73 mm at post (24.0, -16.0), need >= 4.10 mm (62 holes checked)
+  [PASS] all 9 support posts lie under the PCB
+  [PASS] support post tops are all at z = 7.00 (PCB underside plane)
+  [PASS] base does not intersect the PCB assembly (max overlap 0.000 mm^3)
+  [PASS] lid does not intersect the PCB assembly (max overlap 0.000 mm^3)
+  [PASS] lid underside (z 24.60) clears tallest component J2 (power conn.) (z 17.14) by 7.46 mm
+      component heights above the PCB top face (z=8.60):
+        J2 (power conn.)         8.54 mm
+        J1 (display conn.)       6.00 mm
+        Bat_In1                  4.85 mm
+        SW1                      4.30 mm
+        SW2                      4.30 mm
+        A1 Pico                  3.70 mm
+  [PASS] lid-mounted display module (back face ~z 20.60, assuming a 4.0 mm thick module) clears the tallest component by 3.46 mm
+  [PASS] SW1 hole centre (-19.884, 0.250) is 0.000 mm from the switch body axis; hole R 3.00 vs actuator R 1.75 (1.25 mm annular clearance)
+  [PASS] SW2 hole centre (-19.884, -14.250) is 0.000 mm from the switch body axis; hole R 3.00 vs actuator R 1.75 (1.25 mm annular clearance)
+  [note] actuator top is 13.82 mm below the lid's outer face - too deep for a fingertip through a 6.0 mm hole.
+  [PASS] plunger cap dia 5.30 slides in the 6.00 mm hole (0.35 mm radial clearance); 8.50 mm flange cannot pull through
+  [PASS] plunger cap stands 1.20 mm proud of the lid face
+  [PASS] plunger free travel before the flange bottoms out: 0.40 mm (tactile switch travel is ~0.25 mm)
+  [PASS] plunger stem dia 4.80 covers the 3.50 mm actuator without touching the switch body
+  [PASS] plunger flange seats on flat lid, 0.78 mm clear of the display recess
+Building button plunger ...
+  plunger: 15.02 mm tall, stem 4.80 / flange 8.50 / cap 5.30 mm dia
+  [PASS] plungers slide freely through the lid holes (overlap 0.000 mm^3)
+  [PASS] plunger rests on SW1 without fouling the switch body (overlap 0.000 mm^3)
+  [PASS] plunger rests on SW2 without fouling the switch body (overlap 0.000 mm^3)
+  [PASS] display window 24.0 x 15.0 at (-0.70, -7.00) sits inside the 28.3 x 28.8 module recess
+  [PASS] bezel left over the display recess is 0.80 mm thick
+  [PASS] display recess is 2.03 mm clear of SW1
+  [PASS] display recess is 2.03 mm clear of SW2
+  [PASS] display recess is 1.52 mm clear of S1 slot
+  [PASS] display recess corner radius 23.18 mm is inside the lid skirt bore 30.73 mm
+  [PASS] S1 slot is fully on the lid face (outer R 35.03)
+  [PASS] lid skirt OD 65.47 vs base bore 66.07 -> 0.30 mm radial / 0.60 mm diametral clearance
+  [PASS] lid skirt bottom (z 20.60) stays 12.00 mm above the PCB top face
+  [PASS] USB slot X -6.76..6.24 / Z 7.20..15.20 contains the port X -4.01..3.49 / Z 9.68..12.13
+  [PASS] USB slot bottom (z 7.20) does not cut into the PCB ledge (z 7.00)
+  [PASS] min wall/floor/lid/skirt thickness 2.00 mm (>= 3 x 0.4 mm nozzle)
+  [PASS] longest unsupported bridge is the USB slot roof, 13.0 mm
+  [PASS] base is a single valid solid
+  [PASS] lid is a single valid solid
+
+  35/35 checks passed
+
+Exporting ...
+  mesh check base       : watertight, manifold, no self-intersections
+  wrote base.step / base.stl (4578 triangles)
+  mesh check lid        : watertight, manifold, no self-intersections
+  wrote lid.step / lid.stl (3188 triangles)
+  mesh check lid_print  : watertight, manifold, no self-intersections
+  wrote lid_print.stl (3188 triangles)
+Building button plunger ...
+  plunger: 15.02 mm tall, stem 4.80 / flange 8.50 / cap 5.30 mm dia
+  mesh check button_plunger : watertight, manifold, no self-intersections
+  wrote button_plunger.step / button_plunger.stl (1424 triangles)
+
+Rendering previews ...
+  wrote preview_base.png
+  wrote preview_lid_top.png
+  wrote preview_lid_bottom.png
+  wrote preview_pcb_in_base.png
+  wrote preview_exploded.png
+  wrote preview_assembled.png
+  wrote preview_section.png
+  wrote preview_top.png
