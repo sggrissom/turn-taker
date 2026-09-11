@@ -66,8 +66,8 @@ Everything below marked **derived** came out of `turn-taker.kicad_pcb`,
 | S1 (power slide switch) | pads at local (18.466, +5.0 / +0.3 / −4.4); courtyard 7.3 × 13.2 mm | `kicad_pcb` pads + `F.CrtYd` |
 | Bat_In1 | horizontal JST-PH, entirely inside R 29.7 | STEP |
 
-Net check from the schematic: **SW1 → GPIO14** (defer / add turn),
-**SW2 → GPIO15** (take turn), **J1 → the OLED** (GND, +5V, GP4/SDA, GP5/SCL),
+Net check from the schematic: **SW1 → GPIO14** (back / undo),
+**SW2 → GPIO15** (next person), **J1 → the OLED** (GND, +5V, GP4/SDA, GP5/SCL),
 **J2 + S1 → battery switching**, **Bat_In1 → battery**.
 
 Component heights above the PCB top face:

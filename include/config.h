@@ -29,7 +29,8 @@
 #define DISPLAY_I2C_ADDR 0x3C
 
 // Button Configuration
-#define BUTTON_PIN 15        // Take turn (GP15, pin 20)
-#define DEFER_BUTTON_PIN 14  // Defer/add turn (GP14, pin 19)
+// NEXT advances the rotation, BACK steps it the other way to undo a mis-press.
+#define NEXT_BUTTON_PIN 15  // Next person (GP15, pin 20)
+#define BACK_BUTTON_PIN 14  // Previous person (GP14, pin 19)
 
 #endif // CONFIG_H

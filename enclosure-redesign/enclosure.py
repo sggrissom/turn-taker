@@ -89,7 +89,7 @@ SKIRT_T       = 2.00   # skirt wall thickness
 SKIRT_LEADIN  = 0.80   # chamfer on the bottom outside edge of the skirt
 
 # ---- Tactile buttons (derived from the STEP actuator cylinders) ----------
-# SW1 -> GPIO14 ("defer"/add turn), SW2 -> GPIO15 ("take" turn).
+# SW1 -> GPIO14 ("back"/undo), SW2 -> GPIO15 ("next" person).
 SW1_CENTER   = (-19.884,   0.250)   # derived: R1.75 actuator cylinder axis
 SW2_CENTER   = (-19.884, -14.250)   # derived
 SW_ACT_R     = 1.75                 # derived: actuator radius
